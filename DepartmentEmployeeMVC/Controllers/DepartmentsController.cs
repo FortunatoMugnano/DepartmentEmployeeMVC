@@ -66,24 +66,51 @@ namespace DepartmentEmployeeMVC.Controllers
                 conn.Open();
                 using (SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"SELECT Id, DeptName FROM Department WHERE Id = @id ";
+                    cmd.CommandText = @"SELECT e.FirstName, e.LastName, e.Id as EmployeeId, d.DeptName, d.Id
+                                        FROM Department d
+                                        LEFT JOIN Employee e on d.Id = e.DepartmentId
+                                        WHERE d.id = @id";
                     cmd.Parameters.Add(new SqlParameter("@id", id));
 
                     var reader = cmd.ExecuteReader();
 
-                    if(reader.Read())
-                    {
-                        var department = new Department
-                            {
-                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
-                            Name = reader.GetString(reader.GetOrdinal("DeptName"))
-                        };
+                    Department department = null;
 
-                        reader.Close();
-                        return View(department);
+                    while(reader.Read())
+                    {
+                        if (department == null)
+                        {
+                            department = new Department
+                            {
+                                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                                Name = reader.GetString(reader.GetOrdinal("DeptName")),
+
+
+                            };
+                        }
+
+                        var hasEmployee = !reader.IsDBNull(reader.GetOrdinal("EmployeeId"));
+
+                        if (hasEmployee)
+                        {
+                            department.Employees.Add(new Employee
+                            {
+                                FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                                LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                                Id = reader.GetInt32(reader.GetOrdinal("EmployeeId")),
+                            });
+                        }
+
+                        
+                       
+                    }
+
+                    if (department == null)
+                    {
+                        return NotFound();
                     }
                     reader.Close();
-                    return NotFound();
+                    return View(department);
 
                 }
             }
