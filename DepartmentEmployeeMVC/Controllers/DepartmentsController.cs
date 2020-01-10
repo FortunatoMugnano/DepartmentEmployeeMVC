@@ -278,7 +278,7 @@ namespace DepartmentEmployeeMVC.Controllers
             }
             catch (Exception ex)
             {
-                return View("There are Employees in this Department, you can't delete it");
+                return RedirectToAction(nameof(Delete), new { Id = id });
             }
         }
     }

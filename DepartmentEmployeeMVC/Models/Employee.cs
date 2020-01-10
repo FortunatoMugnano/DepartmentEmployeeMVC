@@ -15,7 +15,7 @@ namespace DepartmentEmployeeMVC.Models
         public string FirstName { get; set; }
         [Display(Name = "Last Name")]
         public string LastName { get; set; }
-        [Display(Name = "Department Id")]
+        [Display(Name = "Department")]
         public int DepartmentId { get; set; }
         public Department Department { get; set; }
         

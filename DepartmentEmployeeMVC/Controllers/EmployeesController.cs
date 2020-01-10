@@ -4,8 +4,10 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 using DepartmentEmployeeMVC.Models;
+using DepartmentEmployeeMVC.Models.ViewModels;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Configuration;
 
 namespace DepartmentEmployeeMVC.Controllers
@@ -35,7 +37,9 @@ namespace DepartmentEmployeeMVC.Controllers
                 conn.Open();
                 using(SqlCommand cmd = conn.CreateCommand())
                 {
-                    cmd.CommandText = @"SELECT Id, FirstName, LastName, DepartmentId FROM Employee";
+                    cmd.CommandText = @"SELECT e.Id, e.FirstName, e.LastName, d.Id as DepartmentId, d.DeptName
+                                       FROM Employee e
+                                       JOIN Department d ON e.DepartmentId = d.Id";
 
                     var reader = cmd.ExecuteReader();
 
@@ -48,7 +52,11 @@ namespace DepartmentEmployeeMVC.Controllers
                             Id = reader.GetInt32(reader.GetOrdinal("Id")),
                             FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
                             LastName = reader.GetString(reader.GetOrdinal("LastName")),
-                            DepartmentId = reader.GetInt32(reader.GetOrdinal("DepartmentId"))
+                            Department = new Department
+                            {
+              
+                                Name = reader.GetString(reader.GetOrdinal("DeptName"))
+                            }
                         });
                     }
 
@@ -108,8 +116,20 @@ namespace DepartmentEmployeeMVC.Controllers
         // GET: Employees/Create
         public ActionResult Create()
         {
-        
-            return View();
+            var departments = GetDepartments().Select(d => new SelectListItem
+            {
+                Text = d.Name,
+                Value = d.Id.ToString()
+            }).ToList();
+
+
+            var viewModel = new EmployeeViewModel()
+            {
+                Employee = new Employee(),
+                Departments = departments
+            };
+
+            return View(viewModel);
         }
 
         // POST: Employees/Create
@@ -119,7 +139,6 @@ namespace DepartmentEmployeeMVC.Controllers
         {
             try
             {
-                // TODO: Add insert logic here
 
                 using(SqlConnection conn = Connection)
                 {
@@ -148,6 +167,14 @@ namespace DepartmentEmployeeMVC.Controllers
         // GET: Employees/Edit/5
         public ActionResult Edit(int id)
         {
+            var departments = GetDepartments().Select(d => new SelectListItem
+            {
+                Text = d.Name,
+                Value = d.Id.ToString()
+            }).ToList();
+        
+
+
             using(SqlConnection conn = Connection)
             {
                 conn.Open();
@@ -172,7 +199,14 @@ namespace DepartmentEmployeeMVC.Controllers
                         };
 
                         reader.Close();
-                        return View(employee);
+
+                        var viewModel = new EmployeeViewModel
+                        {
+                            Employee = employee,
+                            Departments = departments
+                        };
+
+                        return View(viewModel);
                     }
 
                     reader.Close();
@@ -212,9 +246,9 @@ namespace DepartmentEmployeeMVC.Controllers
 
                 return RedirectToAction(nameof(Index));
             }
-            catch
+            catch(Exception ex)
             {
-                return View();
+                return  RedirectToAction(nameof(Edit), new { Id = id });
             }
         }
 
@@ -277,6 +311,37 @@ namespace DepartmentEmployeeMVC.Controllers
             catch
             {
                 return View();
+            }
+        }
+
+        private List<Department> GetDepartments()
+        {
+            using(SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using (SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT Id, DeptName FROM Department";
+
+                    var reader = cmd.ExecuteReader();
+
+                    var departments = new List<Department>();
+
+                    while(reader.Read())
+                    {
+                        departments.Add(new Department
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            Name = reader.GetString(reader.GetOrdinal("Deptname"))
+                        });
+
+                        
+                    }
+
+                    reader.Close();
+
+                    return departments;
+                }
             }
         }
     }
