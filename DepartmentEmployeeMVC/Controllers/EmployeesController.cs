@@ -108,17 +108,34 @@ namespace DepartmentEmployeeMVC.Controllers
         // GET: Employees/Create
         public ActionResult Create()
         {
+        
             return View();
         }
 
         // POST: Employees/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public ActionResult Create(Employee employee)
         {
             try
             {
                 // TODO: Add insert logic here
+
+                using(SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using(SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"INSERT INTO Employee (FirstName, LastName, DepartmentId) 
+                                            VALUES (@firstName, @lastName, @deptId)";
+
+                        cmd.Parameters.Add(new SqlParameter("@firstName", employee.FirstName));
+                        cmd.Parameters.Add(new SqlParameter("@lastName", employee.LastName));
+                        cmd.Parameters.Add(new SqlParameter("@deptId", employee.DepartmentId));
+
+                        cmd.ExecuteNonQuery();
+                    }
+                }
 
                 return RedirectToAction(nameof(Index));
             }
@@ -131,17 +148,67 @@ namespace DepartmentEmployeeMVC.Controllers
         // GET: Employees/Edit/5
         public ActionResult Edit(int id)
         {
-            return View();
+            using(SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using(SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT Id, FirstName, LastName, DepartmentId
+                                        FROM Employee
+                                        WHERE Id = @id";
+
+                    cmd.Parameters.Add(new SqlParameter("id", id));
+
+                    var reader = cmd.ExecuteReader();
+
+                    if (reader.Read())
+                    {
+                        var employee = new Employee
+                        {
+                            Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                            FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                            LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                            DepartmentId = reader.GetInt32(reader.GetOrdinal("DepartmentId"))
+                        };
+
+                        reader.Close();
+                        return View(employee);
+                    }
+
+                    reader.Close();
+                    return NotFound();
+                }
+            }
+           
         }
 
         // POST: Employees/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        public ActionResult Edit(int id, Employee employee)
         {
             try
             {
                 // TODO: Add update logic here
+                using(SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using(SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"UPDATE Employee
+                                            SET FirstName = @firstName,
+                                                LastName = @lastName, 
+                                                DepartmentId = @deptId
+                                            WHERE Id = @id";
+
+                        cmd.Parameters.Add(new SqlParameter("@firstName", employee.FirstName));
+                        cmd.Parameters.Add(new SqlParameter("@lastName", employee.LastName));
+                        cmd.Parameters.Add(new SqlParameter("@deptId", employee.DepartmentId));
+                        cmd.Parameters.Add(new SqlParameter("@id", id));
+
+                        cmd.ExecuteNonQuery();
+                    }
+                }
 
                 return RedirectToAction(nameof(Index));
             }
@@ -154,19 +221,58 @@ namespace DepartmentEmployeeMVC.Controllers
         // GET: Employees/Delete/5
         public ActionResult Delete(int id)
         {
-            return View();
+            using(SqlConnection conn = Connection)
+            {
+                conn.Open();
+                using(SqlCommand cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = @"SELECT FirstName, LastName, Id FROM Employee WHERE Id = @id";
+
+                    cmd.Parameters.Add(new SqlParameter("@id", id));
+
+                    var reader = cmd.ExecuteReader();
+
+                    if(reader.Read())
+                    {
+                        var employee = new Employee
+                        {
+                            FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                            LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                            Id = reader.GetInt32(reader.GetOrdinal("Id"))
+                        };
+                        reader.Close();
+                        return View(employee);
+                    }
+
+                    return NotFound();
+                }
+            }
+            
         }
 
         // POST: Employees/Delete/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
+        public ActionResult Delete([FromRoute] int id, Employee employee)
         {
             try
             {
                 // TODO: Add delete logic here
+                using (SqlConnection conn = Connection)
+                {
+                    conn.Open();
+                    using (SqlCommand cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = @"DELETE FROM Employee WHERE Id = @id";
 
-                return RedirectToAction(nameof(Index));
+                        cmd.Parameters.Add(new SqlParameter("Id", id));
+
+                        cmd.ExecuteNonQuery();
+
+                        return RedirectToAction(nameof(Index));
+                    }
+                }
+                
             }
             catch
             {
